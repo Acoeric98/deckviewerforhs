@@ -1,5 +1,6 @@
 import os
 import shutil
+import asyncio
 
 from db.config import FOLDER
 from framework import GRequestsDownloader
@@ -11,4 +12,4 @@ async def download_cards(cards):
     os.mkdir(FOLDER)
 
     cards_api = GRequestsDownloader()
-    cards_api.process_cards(cards)
+    await asyncio.to_thread(cards_api.process_cards, cards)

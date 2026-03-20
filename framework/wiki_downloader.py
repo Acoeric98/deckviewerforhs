@@ -6,7 +6,10 @@ from db.config import FOLDER
 def download_from_wiki(slug, name):
     name = "_".join(name.split())
 
-    response = requests.get(f"https://hearthstone.fandom.com/wiki/{name}")
+    response = requests.get(
+        f"https://hearthstone.fandom.com/wiki/{name}",
+        timeout=20
+    )
 
     r = response.text
     r = r[:r.index('width="270"')]
@@ -14,4 +17,4 @@ def download_from_wiki(slug, name):
     url = r[r.index('src="') + 5:r.index("png") + 3]
 
     with open(f"{FOLDER}{slug}.png", "wb") as photo:
-        photo.write(requests.get(url).content)
+        photo.write(requests.get(url, timeout=20).content)

@@ -32,14 +32,20 @@ class BlizzardAPI:
         payload = {"grant_type": "client_credentials"}
         auth = (self.client_id, self.client_secret)
         response = self.session.post(url, data=payload, auth=auth)
-        return response.json()["access_token"]
+        response_json = response.json()
+        if "access_token" not in response_json:
+            raise ValueError(
+                "Unable to fetch Blizzard access_token. "
+                f"Status: {response.status_code}, Response: {response_json}"
+            )
+        return response_json["access_token"]
 
     async def get(self, *args, **kwargs):
         response = None
         retries = 0
 
         while not response:
-            response = self.session.get(*args, **kwargs)
+            response = await asyncio.to_thread(self.session.get, *args, **kwargs)
             if not response:
                 retries += 1
                 if retries == 2:

@@ -12,9 +12,9 @@ class GRequestsDownloader:
                 photo.write(response.content)
             else:
                 try:
-                    response = requests.get(save_url)
+                    response = requests.get(save_url, timeout=20)
                     photo.write(response.content)
-                except:
+                except requests.RequestException:
                     download_from_wiki(slug, name)
 
     def get_and_save_photos(self, responses, cards):
@@ -22,7 +22,7 @@ class GRequestsDownloader:
             self.save_photo(card["slug"], response, card["name"], card["image"])
 
     def process_cards(self, cards):
-        methods = (grequests.get(card["image"]) for card in cards)
-        response = grequests.map(methods)
+        methods = (grequests.get(card["image"], timeout=20) for card in cards)
+        response = grequests.map(methods, exception_handler=lambda *_: None)
 
         self.get_and_save_photos(response, cards)
