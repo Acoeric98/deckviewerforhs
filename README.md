@@ -29,5 +29,13 @@ pip install -r requirements.txt
 ```
 ### 3. Set up env variables
 Create file called ".env" and fill it like example showed in file ".env-example"
-### 4. Run it!
 
+Required values:
+- `TOKEN` - Discord bot token
+- `CLIENT_ID` - Blizzard/Battle.net API Client ID
+- `CLIENT_SECRET` - Blizzard/Battle.net API Client Secret
+
+Optional values:
+- `PROXY_HTTP`
+- `PROXY_HTTPS`
+### 4. Run it!
