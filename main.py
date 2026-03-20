@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import os
 import random
@@ -16,6 +17,10 @@ client = commands.Bot(command_prefix="/",
                       intents=discord.Intents.default())
 
 
+generation_queue: asyncio.Queue[discord.Message] = asyncio.Queue()
+queue_worker_task: asyncio.Task | None = None
+
+
 async def generate_and_save(deck_code):
     image = await create_picture(deck_code)
 
@@ -32,8 +37,36 @@ async def generate_and_save(deck_code):
     return name
 
 
+async def process_mention_queue():
+    while True:
+        message = await generation_queue.get()
+        start_time = datetime.datetime.now()
+
+        try:
+            deck_code = next(
+                (word for word in message.content.split() if word.startswith("AA")),
+                None,
+            )
+            if not deck_code:
+                continue
+
+            name = await generate_and_save(deck_code)
+            if not name:
+                continue
+
+            await message.reply(file=discord.File(f"{name}.png"), mention_author=False)
+            os.remove(f"{name}.png")
+            print(datetime.datetime.now() - start_time)
+        except Exception as exc:
+            print("queue processing error:", exc)
+        finally:
+            generation_queue.task_done()
+
+
 @client.event
 async def on_ready():
+    global queue_worker_task
+
     print("Logged in as")
     print(client.user.name)
     print(client.user.id)
@@ -56,6 +89,9 @@ async def on_ready():
 
     print(f"ALL: {sum_servers} servers, {sum_members} members")
     print("\n\n---------\n\n")
+
+    if queue_worker_task is None or queue_worker_task.done():
+        queue_worker_task = asyncio.create_task(process_mention_queue())
 
 
 @client.tree.command(name="deck", description="Generates picture of deck by"
@@ -107,22 +143,13 @@ async def deck(ctx, deck_code):
 async def on_message(message: discord.message.Message):
     if message.author.bot:
         return
-    text = message.content.split()
 
-    start_time = datetime.datetime.now()
+    if client.user in message.mentions:
+        has_deck_code = any(word.startswith("AA") for word in message.content.split())
+        if has_deck_code:
+            await generation_queue.put(message)
 
-    for word in text:
-        if word[:2] == "AA":
-            ctx: discord.ext.commands.context.Context = \
-                await client.get_context(message)
-
-            name = await generate_and_save(word)
-
-            await ctx.send(file=discord.File(f"{name}.png"))
-
-            os.remove(f"{name}.png")
-
-            print(datetime.datetime.now() - start_time)
+    await client.process_commands(message)
 
 
 client.run(TOKEN)
